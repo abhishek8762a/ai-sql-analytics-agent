@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>
+/* Shop-floor control panel: steel neutrals, one signal-orange accent, status lamps. */
+:root {
+  --bg: #f3f4f2; --panel: #ffffff; --ink: #1b1f1d; --muted: #5f6763; --line: #dfe2de;
+  --accent: #d9541e; --accent-soft: #fbe6dc; --track: #e9ebe7;
+  --ok: #1f8a4c; --warn: #b7791f; --bad: #c2342b; --idle: #8a918d;
+  --ont: #1f6f8b; --late: #9cc3d1;
+  --display: 'Fraunces', Georgia, serif;
+  --body: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #121514; --panel: #1b1f1d; --ink: #e8ebe8; --muted: #9aa29e; --line: #2c322f;
+    --accent: #f07a43; --accent-soft: #3a2419; --track: #262b28;
+    --ok: #4cc283; --warn: #e0a84a; --bad: #f0675d; --idle: #6f7773; --ont: #5fb3d1; --late: #2f5866; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 var(--body); }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 20px 16px 48px; display: grid; gap: 18px; }
+
+/* header */
+.top { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between; }
+.brand small { display: block; font: 500 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+.brand h1 { margin: 2px 0 0; font: 600 30px/1.1 var(--display); }
+.who { font-size: 12px; color: var(--muted); }
+.weekbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 8px; }
+.weekbar button, .weekbar input, .weekbar select { font: 500 13px var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; }
+.weekbar button { cursor: pointer; min-width: 36px; }
+.weekbar button:hover { border-color: var(--accent); }
+.weekbar .lbl { font: 500 13px var(--mono); padding: 0 6px; white-space: nowrap; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.tab { background: none; border: 0; border-bottom: 2px solid transparent; padding: 10px 14px; font: 500 14px var(--body); color: var(--muted); cursor: pointer; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+.banner { border: 1px dashed var(--line); border-radius: var(--r); padding: 14px 16px; color: var(--muted); background: var(--panel); }
+.banner b { color: var(--ink); }
+.banner .chips { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 500 12px var(--mono); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; background: var(--bg); cursor: pointer; color: var(--ink); }
+.chip:hover { border-color: var(--accent); }
+
+/* tiles */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 4px; }
+.tile .k { font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.tile .v { font: 500 34px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.tile .d { font: 500 12px var(--mono); }
+.up { color: var(--ok); } .down { color: var(--bad); } .flat { color: var(--muted); }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; min-width: 0; }
+.card h2 { margin: 0; font: 600 15px var(--body); }
+.card .note { margin: 2px 0 12px; font-size: 12px; color: var(--muted); }
+
+/* table */
+.scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th { text-align: left; font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; cursor: pointer; user-select: none; }
+th.n, td.n { text-align: right; }
+td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tbody tr.click { cursor: pointer; }
+tbody tr.click:hover td { background: var(--bg); }
+.name { font-weight: 600; }
+.sys { font-size: 12px; color: var(--muted); }
+.lamp { display: inline-flex; align-items: center; gap: 6px; font: 500 12px var(--body); white-space: nowrap; }
+.lamp::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent); }
+.s-ok { color: var(--ok); } .s-warn { color: var(--warn); } .s-bad { color: var(--bad); } .s-idle { color: var(--idle); }
+.meter { display: flex; align-items: center; gap: 8px; min-width: 130px; }
+.meter span { width: 46px; text-align: right; font: 500 12px var(--mono); }
+.meter .tr { flex: 1; height: 7px; background: var(--track); border-radius: 4px; overflow: hidden; }
+.meter .fi { height: 100%; border-radius: 4px; }
+
+/* task bars */
+.tasks { display: grid; gap: 14px; }
+.task .row { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.task .t { font-weight: 500; }
+.task .nums { font: 500 12px var(--mono); color: var(--muted); }
+.stack { position: relative; height: 16px; background: var(--track); border-radius: 5px; overflow: hidden; margin-top: 5px; }
+.stack div { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 5px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* charts */
+svg text { font: 11px var(--mono); fill: var(--muted); }
+.chart { width: 100%; height: auto; display: block; }
+.empty { color: var(--muted); font-size: 13px; padding: 16px 0; }
+.err { border: 1px solid var(--bad); color: var(--bad); border-radius: var(--r); padding: 16px; background: var(--panel); }
+.loading { color: var(--muted); padding: 40px 0; text-align: center; }
+[hidden] { display: none !important; }
+@media (max-width: 560px) { .brand h1 { font-size: 24px; } .tile .v { font-size: 28px; } .hide-sm { display: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <small>Omex Gears · MIS</small>
+      <h1>Weekly scorecard</h1>
+      <div class="who" id="who"></div>
+    </div>
+    <div class="weekbar" aria-label="Choose week">
+      <button id="prev" title="Previous week" aria-label="Previous week">‹</button>
+      <input type="date" id="pick" aria-label="Any date in the week">
+      <button id="next" title="Next week" aria-label="Next week">›</button>
+      <span class="lbl" id="weekLabel"></span>
+      <button id="latest">Latest</button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-v="team" aria-selected="true" id="tab-team">Team</button>
+    <button class="tab" role="tab" data-v="person" aria-selected="false">Person</button>
+  </nav>
+
+  <div id="status" class="loading">Loading scores…</div>
+
+  <div id="nodata" class="banner" hidden></div>
+
+  <!-- TEAM -->
+  <section id="team" hidden>
+    <div class="tiles" id="teamTiles"></div>
+    <div class="card" style="margin-top:12px">
+      <h2>Everyone this week</h2>
+      <p class="note">Click a row to open that person. Click a header to sort. Change vs the week before is shown under each score.</p>
+      <div class="scroll"><table id="peopleTable"><thead><tr>
+        <th data-s="person">Person</th><th data-s="statusRank">Status</th>
+        <th class="n" data-s="planned">Planned</th><th class="n" data-s="done">Done</th>
+        <th data-s="doneRate">Done %</th><th data-s="onTimeRate">On time %</th>
+        <th class="n" data-s="pending">Pending</th><th class="n hide-sm" data-s="next">Next wk</th>
+        <th class="hide-sm" data-s="systems">Systems</th>
+      </tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="grid2" style="margin-top:12px">
+      <div class="card"><h2>Team trend</h2><p class="note">Done % and on-time % for the last 8 captured weeks. The selected week is marked.</p><div id="teamTrend"></div></div>
+      <div class="card"><h2>By system</h2><p class="note">Planned vs done for each system across the team this week.</p><div id="bySystem"></div></div>
+    </div>
+  </section>
+
+  <!-- PERSON -->
+  <section id="person" hidden>
+    <div class="weekbar" style="width:fit-content;max-width:100%">
+      <label for="personSel" class="lbl">Person</label>
+      <select id="personSel"></select>
+      <a id="sheetLink" class="lbl" target="_blank" rel="noopener" style="color:var(--accent)">Open MIS sheet ↗</a>
+    </div>
+    <div class="tiles" id="personTiles" style="margin-top:12px"></div>
+    <div class="grid2" style="margin-top:12px">
+      <div class="card"><h2>Task by task</h2><p class="note" id="periodNote"></p>
+        <div class="legend"><span><i style="background:var(--ont)"></i>On time</span><span><i style="background:var(--late)"></i>Done late</span><span><i style="background:var(--track)"></i>Not done</span></div>
+        <div class="tasks" id="tasks"></div></div>
+      <div class="card"><h2>Their trend</h2><p class="note">Last 8 captured weeks.</p><div id="personTrend"></div></div>
+    </div>
+  </section>
+</div>
+
+<script>
+const S = { data: null, week: null, view: 'team', person: null, sort: { key: 'statusRank', dir: 1 } };
+const $ = (s) => document.querySelector(s);
+const el = (tag, attrs, ...kids) => {
+  const n = document.createElement(tag);
+  Object.entries(attrs || {}).forEach(([k, v]) => k === 'class' ? n.className = v : k === 'style' ? n.style.cssText = v : n.setAttribute(k, v));
+  kids.flat().forEach((k) => n.append(k instanceof Node ? k : document.createTextNode(k ?? '')));
+  return n;
+};
+
+/* ---------- dates: weeks run Monday–Sunday ---------- */
+const parse = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const iso = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const monday = (d) => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const fmt = (d, o) => d.toLocaleDateString('en-IN', o || { day: 'numeric', month: 'short' });
+const weekLabel = (w) => { const a = parse(w), b = addDays(a, 6); return fmt(a) + ' – ' + fmt(b, { day: 'numeric', month: 'short', year: 'numeric' }); };
+
+/* ---------- scoring ---------- */
+const pct = (v) => v == null ? '—' : v.toFixed(1) + '%';
+const STATUS = { ok: ['On track', 's-ok', 2], warn: ['Watch', 's-warn', 1], bad: ['Behind', 's-bad', 0], idle: ['No work planned', 's-idle', 3] };
+function status(p) {
+  if (!p.planned) return STATUS.idle;
+  const worst = Math.min(p.doneRate ?? 0, p.onTimeRate ?? p.doneRate ?? 0);
+  return worst >= S.data.good ? STATUS.ok : worst >= S.data.watch ? STATUS.warn : STATUS.bad;
+}
+const tone = (v) => v == null ? 'var(--idle)' : v >= S.data.good ? 'var(--ok)' : v >= S.data.watch ? 'var(--warn)' : 'var(--bad)';
+function roll(rows) {
+  const t = rows.reduce((a, r) => { a.planned += r.planned; a.done += r.done; a.otPlanned += r.otPlanned; a.onTime += r.onTime ?? r.done; a.next += r.next; return a; },
+    { planned: 0, done: 0, otPlanned: 0, onTime: 0, next: 0 });
+  t.doneRate = t.planned ? t.done / t.planned * 100 : null;
+  t.onTimeRate = t.otPlanned ? t.onTime / t.otPlanned * 100 : null;
+  t.pending = Math.max(0, t.planned - t.done);
+  return t;
+}
+const rowsFor = (week, person) => S.data.rows.filter((r) => r.week === week && (!person || r.person === person));
+const prevWeek = (week) => S.data.weeks.find((w) => w < week) || null;
+function byPerson(week) {
+  const names = [...new Set(rowsFor(week).map((r) => r.person))];
+  return names.map((n) => {
+    const rows = rowsFor(week, n);
+    const p = Object.assign({ person: n, rows, systems: [...new Set(rows.map((r) => r.system))].join(' · '), url: rows[0] && rows[0].url }, roll(rows));
+    const st = status(p); p.status = st; p.statusRank = st[2];
+    return p;
+  });
+}
+function delta(now, before, unit, invert) {
+  if (now == null || before == null) return el('span', { class: 'd flat' }, 'no earlier week');
+  const d = now - before;
+  if (Math.abs(d) < 0.05) return el('span', { class: 'd flat' }, '= same as last week');
+  const good = invert ? d < 0 : d > 0;
+  return el('span', { class: 'd ' + (good ? 'up' : 'down') }, (d > 0 ? '▲ +' : '▼ ') + (unit === '%' ? d.toFixed(1) + ' pts' : Math.round(d)) + ' vs last week');
+}
+function tile(k, v, color, d) { return el('div', { class: 'tile' }, el('span', { class: 'k' }, k), el('span', { class: 'v', style: color ? 'color:' + color : '' }, v), d || el('span', { class: 'd flat' }, ' ')); }
+function meter(v) {
+  return el('div', { class: 'meter' }, el('span', {}, pct(v)),
+    el('div', { class: 'tr' }, el('div', { class: 'fi', style: 'width:' + Math.max(0, Math.min(100, v ?? 0)) + '%;background:' + tone(v) })));
+}
+
+/* ---------- line chart (SVG) ---------- */
+function trend(container, series, markWeek) {
+  container.replaceChildren();
+  const pts = series.filter((s) => s.doneRate != null);
+  if (pts.length < 2) { container.append(el('div', { class: 'empty' }, 'Trend appears once two or more weeks are captured.')); return; }
+  const W = Math.max(300, container.clientWidth || 480), H = 210, L = 40, R = 16, T = 14, B = 28;
+  const x = (i) => L + i * (W - L - R) / (series.length - 1);
+  const y = (v) => T + (100 - v) * (H - T - B) / 100;
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('class', 'chart');
+  const add = (tag, a, text) => { const n = document.createElementNS(ns, tag); Object.entries(a).forEach(([k, v]) => n.setAttribute(k, v)); if (text != null) n.textContent = text; svg.append(n); return n; };
+  [0, 25, 50, 75, 100].forEach((g) => { add('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), stroke: 'var(--line)' }); add('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end' }, g + '%'); });
+  add('line', { x1: L, x2: W - R, y1: y(S.data.good), y2: y(S.data.good), stroke: 'var(--ok)', 'stroke-dasharray': '4 4', opacity: .6 });
+  const mi = series.findIndex((s) => s.week === markWeek);
+  if (mi >= 0) add('rect', { x: x(mi) - 14, y: T, width: 28, height: H - T - B, fill: 'var(--accent-soft)', rx: 4 });
+  const step = Math.ceil(series.length / 6);
+  series.forEach((s, i) => { if (i % step === 0 || i === series.length - 1) add('text', { x: x(i), y: H - 8, 'text-anchor': 'middle' }, fmt(parse(s.week))); });
+  [['doneRate', 'var(--accent)', 'Done'], ['onTimeRate', 'var(--ont)', 'On time']].forEach(([k, c, label]) => {
+    const d = series.map((s, i) => s[k] == null ? null : [x(i), y(s[k])]).filter(Boolean);
+    if (!d.length) return;
+    add('path', { d: 'M' + d.map((p) => p.join(',')).join('L'), fill: 'none', stroke: c, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
+    d.forEach((p) => add('circle', { cx: p[0], cy: p[1], r: 3, fill: c }));
+    const last = series[series.length - 1][k];
+    if (last != null) add('text', { x: d[d.length - 1][0] - 4, y: d[d.length - 1][1] - 8, 'text-anchor': 'end', style: 'fill:' + c }, label + ' ' + last.toFixed(0) + '%');
+  });
+  container.append(svg);
+}
+const lastWeeks = (upTo, n) => S.data.weeks.filter((w) => w <= upTo).slice(0, n).reverse();
+
+/* ---------- views ---------- */
+function render() {
+  $('#weekLabel').textContent = 'Week of ' + weekLabel(S.week);
+  $('#pick').value = S.week;
+  const has = S.data.weeks.includes(S.week);
+  const nd = $('#nodata');
+  nd.hidden = has;
+  if (!has) {
+    nd.replaceChildren(el('b', {}, 'No scores were captured for this week.'),
+      ' Capture started on ' + weekLabel(S.data.weeks[S.data.weeks.length - 1]).split(' – ')[0] + '. Pick one of the weeks that have data:',
+      el('div', { class: 'chips' }, S.data.weeks.slice(0, 12).map((w) => { const c = el('button', { class: 'chip' }, weekLabel(w)); c.onclick = () => go(w); return c; })));
+  }
+  $('#team').hidden = !has || S.view !== 'team';
+  $('#person').hidden = !has || S.view !== 'person';
+  document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.v === S.view)));
+  if (!has) return;
+  if (S.view === 'team') renderTeam(); else renderPerson();
+}
+
+function renderTeam() {
+  const people = byPerson(S.week);
+  const t = roll(rowsFor(S.week)), pw = prevWeek(S.week), tp = pw ? roll(rowsFor(pw)) : null;
+  const behind = people.filter((p) => p.status === STATUS.bad).length;
+  const behindPrev = pw ? byPerson(pw).filter((p) => p.status === STATUS.bad).length : null;
+  $('#teamTiles').replaceChildren(
+    tile('Work done', pct(t.doneRate), tone(t.doneRate), delta(t.doneRate, tp && tp.doneRate, '%')),
+    tile('Done on time', pct(t.onTimeRate), tone(t.onTimeRate), delta(t.onTimeRate, tp && tp.onTimeRate, '%')),
+    tile('Tasks planned', t.planned.toLocaleString('en-IN'), null, delta(t.planned, tp && tp.planned)),
+    tile('Pending', t.pending.toLocaleString('en-IN'), t.pending ? 'var(--bad)' : null, delta(t.pending, tp && tp.pending, '', true)),
+    tile('People behind', behind + ' / ' + people.length, behind ? 'var(--bad)' : 'var(--ok)', delta(behind, behindPrev, '', true)),
+  );
+  const { key, dir } = S.sort;
+  people.sort((a, b) => { const x = a[key] ?? -1, y = b[key] ?? -1; return (typeof x === 'string' ? x.localeCompare(y) : x - y) * dir || (a.doneRate ?? 0) - (b.doneRate ?? 0); });
+  const prevMap = pw ? Object.fromEntries(byPerson(pw).map((p) => [p.person, p])) : {};
+  $('#peopleTable tbody').replaceChildren(...people.map((p) => {
+    const pp = prevMap[p.person];
+    const tr = el('tr', { class: 'click' },
+      el('td', { class: 'name' }, p.person),
+      el('td', {}, el('span', { class: 'lamp ' + p.status[1] }, p.status[0])),
+      el('td', { class: 'n' }, String(p.planned)), el('td', { class: 'n' }, String(p.done)),
+      el('td', {}, meter(p.doneRate), delta(p.doneRate, pp && pp.doneRate, '%')),
+      el('td', {}, meter(p.onTimeRate), delta(p.onTimeRate, pp && pp.onTimeRate, '%')),
+      el('td', { class: 'n', style: p.pending ? 'color:var(--bad);font-weight:600' : '' }, String(p.pending)),
+      el('td', { class: 'n hide-sm' }, String(p.next || '—')),
+      el('td', { class: 'sys hide-sm' }, p.systems));
+    tr.onclick = () => { S.person = p.person; setView('person'); };
+    return tr;
+  }));
+  trend($('#teamTrend'), lastWeeks(S.week, 8).map((w) => Object.assign({ week: w }, roll(rowsFor(w)))), S.week);
+  // by system
+  const sys = {};
+  rowsFor(S.week).forEach((r) => { const k = r.system.toUpperCase(); (sys[k] = sys[k] || { name: k, rows: [] }).rows.push(r); });
+  const list = Object.values(sys).map((s) => Object.assign(s, roll(s.rows))).sort((a, b) => b.planned - a.planned);
+  const max = Math.max(1, ...list.map((s) => s.planned));
+  $('#bySystem').replaceChildren(el('div', { class: 'tasks' }, list.map((s) => taskBar(s.name, '', s.planned, s.done, s.onTime, max))));
+}
+
+function taskBar(title, sub, planned, done, onTime, max) {
+  return el('div', { class: 'task' },
+    el('div', { class: 'row' }, el('span', {}, el('span', { class: 't' }, title), sub ? el('span', { class: 'sys' }, '  ' + sub) : ''),
+      el('span', { class: 'nums' }, planned ? `${done}/${planned} done · ${onTime} on time · ${pct(done / planned * 100)}` : 'nothing planned')),
+    el('div', { class: 'stack', style: 'width:' + Math.max(4, planned / max * 100) + '%' },
+      el('div', { style: `width:${planned ? done / planned * 100 : 0}%;background:var(--late)` }),
+      el('div', { style: `width:${planned ? onTime / planned * 100 : 0}%;background:var(--ont)` })));
+}
+
+function renderPerson() {
+  const names = [...new Set(S.data.rows.map((r) => r.person))].sort();
+  if (!S.person || !names.includes(S.person)) S.person = S.data.me.role === 'ADMIN' ? names[0] : S.data.me.person;
+  const sel = $('#personSel');
+  sel.replaceChildren(...names.map((n) => new Option(n, n)));
+  sel.value = S.person; sel.disabled = names.length < 2;
+  const rows = rowsFor(S.week, S.person);
+  const t = roll(rows), pw = prevWeek(S.week), tp = pw ? roll(rowsFor(pw, S.person)) : null;
+  const st = rows.length ? status(t) : STATUS.idle;
+  const link = $('#sheetLink'); link.hidden = !rows[0]; if (rows[0]) link.href = rows[0].url;
+  $('#personTiles').replaceChildren(
+    tile('Status', st[0], `var(--${['bad', 'warn', 'ok', 'idle'][st[2]]})`),
+    tile('Work done', pct(t.doneRate), tone(t.doneRate), delta(t.doneRate, tp && tp.doneRate, '%')),
+    tile('Done on time', pct(t.onTimeRate), tone(t.onTimeRate), delta(t.onTimeRate, tp && tp.onTimeRate, '%')),
+    tile('Pending', String(t.pending), t.pending ? 'var(--bad)' : null, delta(t.pending, tp && tp.pending, '', true)),
+    tile('Next week planned', String(t.next || '—')),
+  );
+  const r0 = rows[0];
+  $('#periodNote').textContent = r0 && r0.from ? `Window set in their sheet: ${fmt(parse(r0.from))} – ${fmt(parse(r0.to || r0.from))}.` : 'Each bar is one step: full bar planned, light fill done, dark fill on time.';
+  const max = Math.max(1, ...rows.map((r) => r.planned));
+  $('#tasks').replaceChildren(...(rows.length ? rows.map((r) => taskBar(r.task, r.system, r.planned, r.done, r.onTime ?? r.done, max))
+    : [el('div', { class: 'empty' }, 'No tasks captured for ' + S.person + ' this week.')]));
+  trend($('#personTrend'), lastWeeks(S.week, 8).map((w) => Object.assign({ week: w }, roll(rowsFor(w, S.person)))), S.week);
+}
+
+/* ---------- controls ---------- */
+function go(week) { S.week = week; render(); }
+function setView(v) { S.view = v; render(); }
+document.querySelectorAll('.tab').forEach((t) => t.onclick = () => setView(t.dataset.v));
+$('#prev').onclick = () => go(iso(addDays(parse(S.week), -7)));
+$('#next').onclick = () => go(iso(addDays(parse(S.week), 7)));
+$('#latest').onclick = () => go(S.data.weeks[0]);
+$('#pick').onchange = (e) => { if (e.target.value && e.target.validity.valid) go(iso(monday(parse(e.target.value)))); };
+$('#personSel').onchange = (e) => { S.person = e.target.value; render(); };
+document.querySelectorAll('#peopleTable th').forEach((th) => th.onclick = () => {
+  const k = th.dataset.s; S.sort = { key: k, dir: S.sort.key === k ? -S.sort.dir : 1 }; render();
+});
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => S.data && render(), 150); });
+
+function start(d) {
+  $('#status').hidden = true;
+  if (d.error) { $('#status').hidden = false; $('#status').className = 'err'; $('#status').textContent = d.error; return; }
+  S.data = d;
+  $('#who').textContent = 'Signed in as ' + d.me.email + (d.me.role === 'ADMIN' ? ' · admin' : '');
+  if (d.me.role !== 'ADMIN') { $('#tab-team').hidden = true; S.view = 'person'; S.person = d.me.person; }
+  if (!d.weeks.length) { $('#status').hidden = false; $('#status').className = 'banner'; $('#status').textContent = 'No weeks captured yet. In MAIN MIS SYSTEM run MIS Dashboard → Capture this week now.'; return; }
+  S.week = d.weeks[0];
+  render();
+}
+google.script.run.withSuccessHandler(start)
+  .withFailureHandler((e) => { $('#status').className = 'err'; $('#status').textContent = 'Could not load scores: ' + e.message; })
+  .getDashboardData();
+</script>
+</body>
+</html>
